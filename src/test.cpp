@@ -13,14 +13,15 @@ int main()
     message("Test5",false);
 
     CScene test;
-      for(int i=0; i<test.size(); i++)
-      {
+    std::auto test =test.generate();
+    // 遍历矩阵并打印
+    for(int i=0; i<test.size(); i++)
+    {
         for(int j=0; j<test[i].size(); j++)
         {
             std::cout << test[i][j] << " ";
         }
-      }
-        std::cout << std::endl;
-
+        std::cout << std::endl; // 每行结束后换行，格式更清晰
+    }
     return 0;
 }

@@ -1,14 +1,9 @@
 #pragma once
-#include<iostream>
+#include <iostream>
+#include <vector>
 
-class CScene;
+class CScene
 {
 public:
-    void generate();
-    void play();
-    void erase();
-
-
-private:
-
-}
+    std::auto generate();
+};
