@@ -5,5 +5,8 @@
 class CScene
 {
 public:
-    std::auto generate();
+    std::vector<std::vector<int>> generate();
+
+private:
+    std::vector<int> shuffle_unit();
 };

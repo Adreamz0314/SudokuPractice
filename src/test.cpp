@@ -1,4 +1,5 @@
 #include<iostream>
+#include<vector>
 #include "utility.inl"
 #include "scene.h"
 
@@ -11,17 +12,19 @@ int main()
     message("Test3",true);
     message("Test4",0);
     message("Test5",false);
+    std::cout<<std::endl;
 
     CScene test;
-    std::auto test =test.generate();
+    std::vector<std::vector<int>> Test =test.generate();
     // 遍历矩阵并打印
-    for(int i=0; i<test.size(); i++)
+
+for(size_t i = 0; i < Test.size(); i++)  // size_t 替代 int
+{
+    for(size_t j = 0; j < Test[i].size(); j++)  // size_t 替代 int
     {
-        for(int j=0; j<test[i].size(); j++)
-        {
-            std::cout << test[i][j] << " ";
-        }
-        std::cout << std::endl; // 每行结束后换行，格式更清晰
+        std::cout << Test[i][j] << " ";
     }
+    std::cout << std::endl;
+}
     return 0;
 }
