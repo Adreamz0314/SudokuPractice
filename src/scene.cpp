@@ -1,26 +1,52 @@
 #include "scene.h"
 #include<iostream>
 #include<vector>
+#include<random>
+#include <algorithm>
 
-    std::vector<std::vector<int>> CScene::generate()                                                     //场景生成
+    std::vector<std::vector<int>> CScene::generate()                            //场景生成
 {
 
     std::vector<std::vector<int>> matrix;
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 9; i++)                                                //创建一个9x9的空矩阵
     {
-        matrix.push_back(std::vector<int>(9, 0));               //创建一个9x9的空矩阵
+        matrix.push_back(std::vector<int>(9, 0));
     }
 
-    for(int i=0;i<0;i++)                                                       //每次循环填入单个种子矩阵;依靠列column判断
+    for(int i=0;i<3;i++)                                                       //每次循环填入单个种子矩阵
     {
-
+        std::vector<int> unit = shuffle_unit();
+        int start_index=i*3;
+        for(int column=start_index;column<start_index+3;column++)
+        {
+            for(int row=start_index;row<start_index+3;row++)
+            {
+                matrix[row][column]=unit.back();
+                unit.pop_back();
+            }
+        }
     }
+
+    for(int aim_column=0;aim_column<9;aim_column++)                         //检查每个空格的可填入数字
+        {
+            for(int aim_row=0;aim_row<9;aim_row++)
+        {
+            if (matrix[aim_column][aim_row]==0)
+                {
+                    matrix[aim_column][aim_row]=1;
+                }
+        }
+        }
+
         return matrix;
 }
 
-    std::vector<int> shuffle_unit();
+
+
+
+    std::vector<int> CScene::shuffle_unit()
 {
-    std::vector<int> source={1,2,3,4,5,6,7,8,9}
+    std::vector<int> source={1,2,3,4,5,6,7,8,9};
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(source.begin(), source.end(), g);
