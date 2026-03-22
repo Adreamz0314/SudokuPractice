@@ -3,6 +3,8 @@
 #include<vector>
 #include<random>
 #include <algorithm>
+#include<map>
+#include<utility>
 
     std::vector<std::vector<int>> CScene::generate()                            //场景生成
 {
@@ -27,13 +29,13 @@
         }
     }
 
-    for(int aim_column=0;aim_column<9;aim_column++)                         //检查每个空格的可填入数字
+    for(int aim_column=0;aim_column<9;aim_column++)                         //填写程序
         {
             for(int aim_row=0;aim_row<9;aim_row++)
         {
             if (matrix[aim_column][aim_row]==0)
                 {
-                    matrix[aim_column][aim_row]=1;
+                   matrix[aim_column][aim_row]=real_number();           //为空格赋值
                 }
         }
         }
@@ -41,7 +43,38 @@
         return matrix;
 }
 
+    int real_number()                                                   //为每个空格返回最终填入数字
+    {
+        std::map<std::pair<int,int>,std::vector<int>> avail_num;
 
+
+        for(int aim_column=0;aim_column<9;aim_column++)
+        {
+            for(int aim_row=0;aim_row<9;aim_row++)
+        {
+            if (matrix[aim_column][aim_row]==0)
+                {
+                    avail_num.emplace(std::pair<int,int>(aim_column,aim_row),{1,2,3,4,5,6,7,8,9});
+
+                    for(int i=0;i<9;i++)                                //检查当前行所有格子
+                    {
+                        if(i==aim_column)
+                        {
+                            continue;
+                        }
+                        if(matrix[i][aim_row]!=0)
+                        {
+                            auto it=std::find(avail_num.find(std::pair(aim_column,aim_row)).begin(), std::find(avail_num.find(std::pair(aim_column,aim_row)).end(), matrix[i][aim_row]);
+                            avail_num.erase(it);
+                        }
+
+                    }
+                }
+        }
+        }
+
+        return real_number;
+    }
 
 
     std::vector<int> CScene::shuffle_unit()
