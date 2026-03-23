@@ -13,9 +13,12 @@ int main()
     for(int i=0;i<9;i++)    std::cout<<test_shuffle_unit[i]<<" ";
     std::cout<<std::endl;
 
-std::vector<std::vector<int>> Test =test.generate();
+    message("随机数测试完成");
+    message("开始调用generate部分");
+    std::vector<std::vector<int>> Test =test.generate();
 
-// 遍历矩阵并打印
+
+    // 遍历矩阵并打印
     message("开始打印矩阵");
 for(size_t i = 0; i < Test.size(); i++)  // size_t 替代 int
 {
