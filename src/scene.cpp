@@ -6,11 +6,19 @@
 #include<map>
 #include<utility>
 
-    std::vector<std::vector<int>> CScene::generate()                            //场景生成
+    std::vector<std::vector<int>> CScene::generate(int* outCycleTime)                            //场景生成
 {
 
+
     std::vector<std::vector<int>> matrix;
-    for (int i = 0; i < 9; i++)                                                 //创建一个9x9的空矩阵
+    int main_cycle_time=0;
+
+
+
+    while(true)
+    {
+        matrix.clear();
+        for (int i = 0; i < 9; i++)                                                 //创建一个9x9的空矩阵
     {
         matrix.push_back(std::vector<int>(9, 0));
     }
@@ -31,6 +39,22 @@
 
     matrix=FucRealMatrMake(matrix);
 
+    std::vector<std::pair<int,int>> FullCheck=FunBlankSpacePairVec(matrix);
+
+    if(FullCheck.empty())
+    {
+        break;
+    }
+
+    main_cycle_time++;
+    if(main_cycle_time>10000)
+    {
+        break;
+    }
+
+    }
+
+    *outCycleTime = main_cycle_time;
     return matrix;
 }
 
@@ -38,25 +62,21 @@
 
 
     std::vector<std::vector<int>> CScene::FucRealMatrMake(std::vector<std::vector<int>> matrix)
-                                                                                //生成并返回可用矩阵
+                                                                                //生成并返回完整矩阵
     {
         std::map<std::pair<int,int>,std::vector<int>> avail_num_map;
-
+        int cycle_time_check=0;
         std::vector<std::pair<int,int>> VarBlankSpacePairVec=FunBlankSpacePairVec(matrix);
                                                                                 //统计空格坐标，以pair形式存入vector中
-        std::vector<std::vector<int>> BacVerMapCheck;
+
         int NumsFilledCell=0;
-        int BacVerCheck=1;
-        std::vector<std::vector<int>> First_cycle_matrix;
-        for (int i = 0; i < 9; i++)                                             //创建一个9x9的矩阵,用于第一次循环校验map填充
+        std::vector<std::vector<int>> PerFillMap;
+        for (int i = 0; i < 9; i++)                                             //创建一个9x9的矩阵,用于循环校验map填充
         {
-            First_cycle_matrix.push_back(std::vector<int>(9, 1));
+            PerFillMap.push_back(std::vector<int>(9, 1));
         }
 
-        for (int i = 0; i < 9; i++)                                             //创建一个9x9的矩阵,用于回溯校验map填充
-        {
-            BacVerMapCheck.push_back(std::vector<int>(9, 1));
-        }
+
 
         while(true)
         {
@@ -64,11 +84,6 @@
                     int aim_row=VarBlankSpacePairVec[NumsFilledCell].first;
                     int aim_column=VarBlankSpacePairVec[NumsFilledCell].second;
 
-                    if(BacVerCheck==0)
-                    {
-                        matrix[aim_row][aim_column]=0;
-                        BacVerCheck=1;
-                    }
 
                     for(int i=0;i<9;i++)                                        //检查当前列所有格子
                     {
@@ -116,17 +131,16 @@
                     {
                         matrix[aim_row][aim_column]=0;
                         NumsFilledCell--;
-                        BacVerCheck=0;
-                        BacVerMapCheck[aim_row][aim_column]=0;
+                        PerFillMap[aim_row][aim_column]=1;
+                        avail_num_map.erase(std::make_pair(aim_row, aim_column));
                         continue;
                     }
 
-                    if(First_cycle_matrix[aim_row][aim_column]==1||BacVerMapCheck[aim_row][aim_column]==0)
+                    if(PerFillMap[aim_row][aim_column]==1)
                                                                                 //若为第一次循环或已经回溯，则将可用数字存入map
                     {
                     avail_num_map[std::make_pair(aim_row, aim_column)] = avail_num;
-                    First_cycle_matrix[aim_row][aim_column]=0;
-                    BacVerMapCheck[aim_row][aim_column]=1;
+                    PerFillMap[aim_row][aim_column]=0;
                     }
 
                     auto it = avail_num_map.find(std::pair<int,int>(aim_row,aim_column));
@@ -138,7 +152,13 @@
                     NumsFilledCell++;
                     }
 
-                    if(NumsFilledCell==54)
+                    if(NumsFilledCell==VarBlankSpacePairVec.size())
+                    {
+                        break;
+                    }
+
+                    cycle_time_check++;
+                    if(cycle_time_check>1000)
                     {
                         break;
                     }
