@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "utility.inl"
 #include<iostream>
 #include<vector>
 #include<random>
@@ -15,7 +16,7 @@
 
 
 
-    while(true)
+    while(true)                                                                 //暂行的可用完整矩阵生成方法
     {
         matrix.clear();
         for (int i = 0; i < 9; i++)                                                 //创建一个9x9的空矩阵
@@ -53,8 +54,11 @@
     }
 
     }
-
     *outCycleTime = main_cycle_time;
+
+    std::vector<std::pair<int,int>> erase_unit_coord=erase_unit_coord_fuc(difficulty_choose());
+    matrix=erase_unit_make(erase_unit_coord,matrix);
+
     return matrix;
 }
 
@@ -169,7 +173,7 @@
     }
 
 
-    std::vector<int> CScene::shuffle_unit()                                    //返回一个随机数列
+    std::vector<int> CScene::shuffle_unit()                                     //返回一个随机数列,用于种子矩阵生成
 {
     std::vector<int> source={1,2,3,4,5,6,7,8,9};
     std::random_device rd;
@@ -177,6 +181,70 @@
     std::shuffle(source.begin(), source.end(), g);
     return source;
 }
+
+
+    std::vector<std::pair<int,int>> CScene::erase_unit_coord_fuc(int erase_unit_num)      //输入应擦除格子数量，返回一个vector,包含应擦除矩阵坐标
+{
+    std::vector<int> erase_source;
+    for(int i=0;i<81;i++)
+    {
+        erase_source.push_back(i);
+    }
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(erase_source.begin(), erase_source.end(), g);
+    erase_source.resize(erase_unit_num);
+    int row=0;
+    int column=0;
+    std::vector<std::pair<int,int>> erase_unit_coord;
+    for(int i=0;i<erase_unit_num;i++)
+    {
+        row=erase_source[i]/9;
+        column=erase_source[i]%9;
+        erase_unit_coord.push_back(std::pair<int,int>(row,column));
+    }
+    return erase_unit_coord;
+}
+
+    int CScene::difficulty_choose()                                             //进行难度选择，返回应清除格子数量
+    {
+        message("选择难度");
+        message("1 2 3");
+        int erase_unit_num;
+        int difficulty_level;
+        std::cin>>difficulty_level;
+        switch(difficulty_level)
+        {
+            case 1:
+                erase_unit_num=15;
+                break;
+
+            case 2:
+                erase_unit_num=25;
+                break;
+
+            case 3:
+                erase_unit_num=35;
+                break;
+            default:
+                message("输入错误 默认选择难度1");
+                erase_unit_num=15;
+        }
+        return erase_unit_num;
+    }
+
+    std::vector<std::vector<int>> CScene::erase_unit_make(std::vector<std::pair<int,int>>erase_unit_coord,std::vector<std::vector<int>> matrix)
+                                                                                //输入完整矩阵和应擦除格子数量，输出残缺矩阵
+    {
+        int blank_num=erase_unit_coord.size();
+        for(int i=0;i<blank_num;i++)
+        {
+            int erase_aim_row=erase_unit_coord[i].first;
+            int erase_aim_column=erase_unit_coord[i].second;
+            matrix[erase_aim_row][erase_aim_column]=0;
+        }
+        return matrix;
+    }
 
     std::vector<std::pair<int,int>> CScene::FunBlankSpacePairVec(std::vector<std::vector<int>> matrix)     //统计空格坐标，以pair形式存入vector中
     {

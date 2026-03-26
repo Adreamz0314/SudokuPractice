@@ -14,6 +14,8 @@ int main()
     std::cout<<std::endl;
 
     message("随机数测试完成");
+
+
     message("开始调用generate部分");
     int count;
     std::vector<std::vector<int>> test_matrix =test.generate(&count);
