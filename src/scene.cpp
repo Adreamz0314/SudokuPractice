@@ -7,7 +7,7 @@
 #include<map>
 #include<utility>
 
-    std::vector<std::vector<int>> CScene::generate(int* outCycleTime)                            //场景生成
+    std::vector<std::vector<int>> CScene::generate(int* outCycleTime)           //场景生成
 {
 
 
@@ -183,7 +183,8 @@
 }
 
 
-    std::vector<std::pair<int,int>> CScene::erase_unit_coord_fuc(int erase_unit_num)      //输入应擦除格子数量，返回一个vector,包含应擦除矩阵坐标
+    std::vector<std::pair<int,int>> CScene::erase_unit_coord_fuc(int erase_unit_num)
+                                                                                //输入应擦除格子数量，返回一个vector,包含应擦除矩阵坐标
 {
     std::vector<int> erase_source;
     for(int i=0;i<81;i++)
@@ -246,7 +247,8 @@
         return matrix;
     }
 
-    std::vector<std::pair<int,int>> CScene::FunBlankSpacePairVec(std::vector<std::vector<int>> matrix)     //统计空格坐标，以pair形式存入vector中
+    std::vector<std::pair<int,int>> CScene::FunBlankSpacePairVec(std::vector<std::vector<int>> matrix)
+                                                                                //统计空格坐标，以pair形式存入vector中
     {
         std::vector<std::pair<int,int>> VarBlankSpacePairVec;
 
@@ -264,9 +266,74 @@
         return VarBlankSpacePairVec;
     }
 
+    void CScene::play(std::vector<std::vector<int>> matrix)                     //接受一个残缺矩阵，负责用户交互
+    {
+        for(int i=0;i<9;i++)
+        {
+            for(int j=0;j<9;j++)
+            {
+                message(matrix[i][j],0);
+                message(" ",0);
+            }
+            message();
+        }
+    }
 
+    bool CScene::game_over(std::vector<std::vector<int>> matrix)               //接受矩阵，判断是否符合结束游戏的条件
+    {
+        bool game_over_check=1;
 
+        for(int i=0;i<9;i++)                                                    //检查行
+        {
+            std::vector<int> row_check=matrix[i];
+            sort(row_check.begin(),row_check.end());
+            if(!(row_check[0]==1&&row_check[1]==2&&row_check[2]==3&&row_check[3]==4&&row_check[4]==5&&row_check[5]==6&&row_check[6]==7&&row_check[7]==8&&row_check[8]==9))
+            {
+                game_over_check=0;
+            }
+            row_check.clear();
+        }
 
+        std::vector<int> column_check;
+        for(int i=0;i<9;i++)                                                    //检查列
+        {
+            for(int j=0;j<9;j++)
+            {
+            column_check.push_back(matrix[j][i]);
+            }
+            sort(column_check.begin(),column_check.end());
+            if(!(column_check[0]==1&&column_check[1]==2&&column_check[2]==3&&column_check[3]==4&&column_check[4]==5&&column_check[5]==6&&column_check[6]==7&&column_check[7]==8&&column_check[8]==9))
+            {
+                game_over_check=0;
+            }
+            column_check.clear();
+        }
+
+        std::vector<int> mini_matrix_check;                                     //检查小矩阵
+        for(int i=0;i<9;i+=3)
+        {
+            for(int j=0;j<9;j+=3)
+            {
+
+        for(int x=i;x<i+3;x++)
+        {
+            for(int y=j;y<j+3;y++)
+            {
+                mini_matrix_check.push_back(matrix[x][y]);
+            }
+        }
+        sort(mini_matrix_check.begin(),mini_matrix_check.end());
+        if(!(mini_matrix_check[0]==1&&mini_matrix_check[1]==2&&mini_matrix_check[2]==3&&mini_matrix_check[3]==4&&mini_matrix_check[4]==5&&mini_matrix_check[5]==6&&mini_matrix_check[6]==7&&mini_matrix_check[7]==8&&mini_matrix_check[8]==9))
+        {
+            game_over_check=0;
+        }
+        mini_matrix_check.clear();
+            }
+        }
+
+            return game_over_check;
+
+    }
 
 
 

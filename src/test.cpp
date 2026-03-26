@@ -18,21 +18,14 @@ int main()
 
     message("开始调用generate部分");
     int count;
-    std::vector<std::vector<int>> test_matrix =test.generate(&count);
+    std::vector<std::vector<int>> matrix =test.generate(&count);
 
+    bool game_over_check=test.game_over(matrix);
+    message("game_over_check的值为",0);
+    message(game_over_check);
 
-    // 遍历矩阵并打印
-    message("开始打印矩阵");
-
-for(size_t i = 0; i < test_matrix.size(); i++)  // size_t 替代 int
-{
-    for(size_t j = 0; j < test_matrix[i].size(); j++)  // size_t 替代 int
-    {
-        std::cout << test_matrix[i][j] << " ";
-    }
-    std::cout << std::endl;
-}
-    message("矩阵打印完成");
+    message("开始调用play部分");
+    test.play(matrix);
     message("本次主循环的次数为",0);
     message(count);
 

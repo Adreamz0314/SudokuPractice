@@ -12,4 +12,6 @@ public:
     std::vector<std::pair<int,int>> erase_unit_coord_fuc(int erase_unit_num);
     int difficulty_choose();
     std::vector<std::vector<int>> erase_unit_make(std::vector<std::pair<int,int>>erase_unit_coord,std::vector<std::vector<int>> matrix);
+    void play(std::vector<std::vector<int>> matrix);
+    bool game_over(std::vector<std::vector<int>> matrix);
 };
