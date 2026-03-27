@@ -268,7 +268,17 @@
 
     void CScene::play(std::vector<std::vector<int>> matrix)                     //接受一个残缺矩阵，负责用户交互
     {
-        for(int i=0;i<9;i++)
+        char play_input;
+        int point_x=0;
+        int point_y=0;
+
+        std::cout << "\033[s";
+        std::cout.flush();
+
+        while(true)
+        {
+
+        for(int i=0;i<9;i++)                                                    //打印矩阵
         {
             for(int j=0;j<9;j++)
             {
@@ -277,6 +287,39 @@
             }
             message();
         }
+
+        std::cout << "\033[" << point_y << ";" << point_x << "H";               //移动光标至计算位置
+        std::cout.flush();
+
+        std::cin>>play_input;
+        switch(play_input)
+        {
+            case 'a':
+                point_x--;
+                break;
+
+            case 'd':
+                point_x++;
+                break;
+
+            case 'w':
+                point_y++;
+                break;
+
+            case 's':
+                point_y--;
+                break;
+
+            case 'q':
+                goto play_end;
+
+        }
+
+        std::cout << "\033[u";
+        std::cout.flush();                                                      //移动光标到初始位置
+        }
+
+        play_end:
     }
 
     bool CScene::game_over(std::vector<std::vector<int>> matrix)               //接受矩阵，判断是否符合结束游戏的条件
