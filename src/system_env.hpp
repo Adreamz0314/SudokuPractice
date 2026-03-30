@@ -1,3 +1,4 @@
+//Windows环境下修改控制台编码为utf8防止乱码
 #pragma once
 
 #if _WIN32

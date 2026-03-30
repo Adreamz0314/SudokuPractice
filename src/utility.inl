@@ -17,17 +17,22 @@ inline unsigned int random(int begin, int end)
     return std::uniform_int_distribution<unsigned int>(begin, end)(g);
 }
 
-inline std::vector<int> get_unit(){
+inline std::vector<int> get_unit(){                          //直接应用于shuffle_unit()  （下面）
     return std::vector<int> {1, 2, 3, 4, 5, 6, 7, 8, 9};
 }
 
-inline std::vector<int> shuffle_unit(){
-    std::vector<int> unit = get_unit();
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(unit.begin(), unit.end(), g);
-    return unit;
+inline std::vector<int> shuffle_unit(){                     //随机数生成，作为种子填充
+    std::vector<int> unit = get_unit();                     //声明一个unit={1， 2, 3, 4, 5, 6, 7，8,9} 的动态数组
+    std::random_device rd;                                  //调用标准库生成随机数
+    std::mt19937 g(rd());                                   //利用真随机种子生成伪随机数
+    std::shuffle(unit.begin(), unit.end(), g);              //打乱原序列
+    return unit;                                            //返回一个真随机打乱的动态数组
 }
+
+
+
+
+
 
 inline void message(const char* msg = "", bool lf = true)
 {
@@ -38,6 +43,11 @@ inline void message(const char* msg = "", bool lf = true)
 inline void message(const std::string& msg, bool lf = true) {
   message(msg.c_str(), lf);
 }
+
+
+
+//message替换cout,方便后续修改，以及避免命名冲突
+
 
 #ifdef _WIN32
 #include <conio.h>

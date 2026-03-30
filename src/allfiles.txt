@@ -1,0 +1,1294 @@
+==============================================
+文件名：./input.cpp
+==============================================
+#include <iostream>
+#include <string>
+
+#include "common.h"
+#include "i18n.h"
+#include "utility.inl"
+
+// return number of grids to be erased
+int inputDifficulty()
+{
+    cls();
+
+    std::string cmd;
+    int need_erase_grids = 0;
+    while (true)
+    {
+        message(I18n::Instance().Get(I18n::Key::ASK_DIFFICULTY));
+
+        std::cin >> cmd;
+
+        try
+        {
+            Difficulty difficulty = static_cast<Difficulty>(std::stoi(cmd));
+            switch (difficulty)
+            {
+            case Difficulty::EASY:
+                need_erase_grids = 20;
+                break;
+            case Difficulty::NORMAL:
+                need_erase_grids = 35;
+                break;
+            case Difficulty::HARD:
+                need_erase_grids = 50;
+                break;
+            }
+        }
+        catch(...) 
+        {
+            need_erase_grids = 0;
+        }
+
+        if (need_erase_grids > 0)
+            break;
+
+        message(I18n::Instance().Get(I18n::Key::INPUT_ERROR));
+    }
+
+    return need_erase_grids;
+}
+
+KeyMode inputKeyMode() {
+  std::string mode;
+  do {
+    message(I18n::Instance().Get(I18n::Key::ASK_KEY_MAP));
+
+    std::cin >> mode;
+
+    try {
+      KeyMode kmd = static_cast<KeyMode>(std::stoi(mode));
+      return kmd;
+    } catch (...) {
+    }
+
+    message(I18n::Instance().Get(I18n::Key::INPUT_ERROR));
+  } while (true);
+}
+
+void InputLanguage() {
+  std::string language;
+  do {
+    message("1English 2中文");
+    std::cin >> language;
+
+    try {
+      auto l = static_cast<Language>(std::stoul(language) - 1);
+      if (l < Language::MAX) {
+        I18n::Instance().SetLanguage(l);
+        return;
+      }
+    } catch (...) {
+    }
+
+    message(I18n::Instance().Get(I18n::Key::INPUT_ERROR));
+  } while (true);
+}
+
+
+
+==============================================
+文件名：./scene.cpp
+==============================================
+#include "scene.h"
+
+#include <memory.h>
+
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+
+#include "common.h"
+#include "display_symbol.h"
+#include "i18n.h"
+#include "utility.inl"
+#include "color.h"
+
+CScene::CScene(int index)
+    : _max_column(static_cast<int>(pow(index, 2)))
+    , _cur_point({0, 0})
+{
+    init();
+}
+
+CScene::~CScene()
+{
+    if(keyMap) delete keyMap;
+}
+
+void CScene::show() const
+{
+    cls();
+
+    printUnderline();
+
+    // 获取光标位置的数字值（若光标在有效位置）
+    int highlighted_num = UNSELECTED;
+    if (_cur_point.y >= 0 && _cur_point.y < _max_column) {
+        const CBlock& cursor_block = _row_block[_cur_point.y];
+        highlighted_num = cursor_block.getNumberValue(_cur_point.x);
+    }
+
+    for (int row = 0; row < _max_column; ++row)
+    {
+        CBlock block = _row_block[row];
+        if(_cur_point.y == row) block.print(_cur_point.x, highlighted_num);
+        else block.print(-1, highlighted_num);
+        printUnderline(row);
+    }
+}
+
+void CScene::setMode(KeyMode mode)
+{
+    switch (mode)
+    {
+    case KeyMode::NORMAL:
+        keyMap = new Normal;
+        break;
+
+    case KeyMode::VIM:
+        keyMap = new Vim;
+        break;
+    }
+}
+
+void CScene::printUnderline(int line_no) const {
+    auto is_curline = (_cur_point.y == line_no);
+    for (int colunm = 0; colunm < 9; ++colunm) {
+        if((colunm%3) == 0 || line_no == -1 || (line_no+1)%3 == 0) {
+            std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << CORNER << Color::Modifier();
+        } else {
+            std::cout <<  CORNER;
+        }
+        auto third_symbol = (is_curline && _cur_point.x == colunm) ? ARROW : LINE;
+        if(line_no == -1 || (line_no+1)%3 == 0) {
+            std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << LINE << third_symbol << LINE << Color::Modifier();
+        } else {
+            std::cout << LINE << third_symbol << LINE;
+        }
+    }
+    std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << CORNER << Color::Modifier()<< std::endl;
+}
+
+void CScene::init()
+{
+    memset(_map, UNSELECTED, sizeof(_map));
+
+    int col = 0;
+    int row = 0;
+
+    for(col = 0; col < _max_column; ++col)
+    {
+        CBlock column_block;
+
+        for(row = 0; row < _max_column; ++row)
+        {
+            column_block.push_back(_map + row * _max_column + col);
+        }
+
+        _column_block[col] = column_block;
+    }
+
+    for(row = 0; row < _max_column; ++row)
+    {
+        CBlock row_block;
+
+        for(col = 0; col < _max_column; ++col)
+        {
+            row_block.push_back(_map + row * _max_column + col);
+        }
+
+        _row_block[row] = row_block;
+    }
+
+
+    for(row = 0; row < _max_column; ++row)
+    {
+        for(col = 0; col < _max_column; ++col)
+        {
+            _xy_block[row / 3][col / 3].push_back(_map + row * _max_column + col);
+        }
+    }
+
+    return;
+}
+
+bool CScene::setCurValue(const int nCurValue, int &nLastValue)
+{
+    auto point = _map[_cur_point.x + _cur_point.y * 9];
+    if (point.state == State::ERASED)
+    {
+        nLastValue = point.value;
+        setValue(nCurValue);
+        return true;
+    }
+    else
+        return false;
+}
+
+void CScene::setValue(const point_t& p, const int value)
+{
+    _map[p.x + p.y * 9].value = value;
+}
+
+void CScene::setValue(const int value)
+{
+    auto p = _cur_point;
+    this->setValue(p, value);
+}
+
+// 选择count个格子清空
+void CScene::eraseRandomGrids(const int count)
+{
+    point_value_t p = {UNSELECTED, State::ERASED};
+
+    std::vector<int> v(81);
+    for (int i = 0; i < 81; ++i) {
+        v[i] = i;
+    }
+
+    for (int i = 0; i < count; ++i) {
+        int r = random(0, static_cast<int>(v.size() - 1));
+        _map[v[r]] = p;
+        v.erase(v.begin() + r);
+    }
+}
+
+bool CScene::isComplete()
+{
+    // 任何一个block未被填满，则肯定未完成
+    for (size_t i = 0; i < 81; ++i)
+    {
+        if (_map[i].value == UNSELECTED)
+            return false;
+    }
+
+    // 同时block里的数字还要符合规则
+    for (int row = 0; row < 9; ++row)
+    {
+        for (int col = 0; col < 9; ++col)
+        {
+            if (!_row_block[row].isValid() || 
+                !_column_block[col].isValid() || 
+                !_xy_block[row / 3][col / 3].isValid())
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool CScene::save(const char *filename) {
+  auto filepath = std::filesystem::path(filename);
+  if (std::filesystem::exists(filepath)) {
+    return false;
+  }
+
+    std::fstream fs;
+    fs.open(filename, std::fstream::in | std::fstream::out | std::fstream::app);
+
+    // save _map
+    for (int i = 0; i < 81; i++) {
+        fs << _map[i].value << ' ' << static_cast<int>(_map[i].state) << std::endl;
+    }
+
+    // save _cur_point
+    fs << _cur_point.x << ' ' << _cur_point.y << std::endl;
+
+    // save _vCommand
+    fs << _vCommand.size() << std::endl;
+    for (CCommand command : _vCommand) {
+        point_t point = command.getPoint();
+        fs << point.x << ' ' << point.y << ' '
+           << command.getPreValue() << ' '
+           << command.getCurValue() << std::endl;
+    }
+
+    fs.close();
+    return true;
+}
+
+bool CScene::load(const char *filename) {
+  auto filepath = std::filesystem::path(filename);
+  if (!std::filesystem::exists(filepath)) {
+    return false;
+  }
+
+    std::fstream fs;
+    fs.open(filename, std::fstream::in | std::fstream::out | std::fstream::app);
+
+    // load _map
+    for (int i = 0; i < 81; i++) {
+        int tmpState;
+        fs >> _map[i].value >> tmpState;
+        _map[i].state = static_cast<State>(tmpState);
+    }
+
+    // load _cur_point
+    fs >> _cur_point.x >> _cur_point.y;
+
+    // load _vCommand
+    int commandSize;
+    fs >> commandSize;
+    for (int i = 0; i < commandSize; i++) {
+        point_t point;
+        int preValue, curValue;
+        fs >> point.x >> point.y >> preValue >> curValue;
+        _vCommand.emplace_back(this, point, preValue, curValue);
+    }
+    return true;
+}
+
+void CScene::play()
+{
+    show();
+
+    char key = '\0';
+    while (1)
+    {
+        key = static_cast<char>(_getch());
+        if (key >= '0' && key <= '9')
+        {
+            CCommand oCommand(this);
+            if (!oCommand.execute(key - '0'))
+            {
+                std::cout << "this number can't be modified." << std::endl;
+            }
+            else
+            {
+                _vCommand.push_back(std::move(oCommand));  // XXX: move without move constructor
+                show();
+                continue;
+            }
+        }
+        if (key == keyMap->ESC)
+        {
+            message(I18n::Instance().Get(I18n::Key::ASK_QUIT));
+            std::string strInput;
+            std::cin >> strInput;
+            if (strInput[0] == 'y' || strInput[0] == 'Y')
+            {
+                message(I18n::Instance().Get(I18n::Key::ASK_SAVE));
+                std::cin >> strInput;
+                if (strInput[0] == 'y' || strInput[0] == 'Y') {
+                  do {
+                    message(I18n::Instance().Get(I18n::Key::ASK_SAVE_PATH));
+                    std::cin >> strInput;
+                    if (!save(strInput.c_str())) {
+                      message(I18n::Instance().Get(I18n::Key::FILE_EXIST_ERROR));
+                    } else {
+                      break;
+                    }
+                  } while (true);
+                }
+                exit(0);
+            } else {
+              message(I18n::Instance().Get(I18n::Key::CONTINUE));
+            }
+        }
+        else if (key == keyMap->U)
+        {
+          if (_vCommand.empty()) {
+            message(I18n::Instance().Get(I18n::Key::UNDO_ERROR));
+          } else {
+            CCommand &oCommand = _vCommand.back();
+            oCommand.undo();
+            _vCommand.pop_back();
+            show();
+          }
+        }
+        else if (key == keyMap->LEFT)
+        {
+            _cur_point.x = (_cur_point.x - 1) < 0 ? 0 : _cur_point.x - 1;
+            show();
+        }
+        else if (key == keyMap->RIGHT)
+        {
+            _cur_point.x = (_cur_point.x + 1) > 8 ? 8 : _cur_point.x + 1;
+            show();
+        }
+        else if (key == keyMap->DOWN)
+        {
+            _cur_point.y = (_cur_point.y + 1) > 8 ? 8 : _cur_point.y + 1;
+            show();
+        }
+        else if (key == keyMap->UP)
+        {
+            _cur_point.y = (_cur_point.y - 1) < 0 ? 0 : _cur_point.y - 1;
+            show();
+        }
+        else if (key == keyMap->ENTER)
+        {
+          if (isComplete()) {
+            message(I18n::Instance().Get(I18n::Key::CONGRATULATION));
+            getchar();
+            exit(0);
+          } else {
+            message(I18n::Instance().Get(I18n::Key::NOT_COMPLETED));
+          }
+        }
+    }
+}
+
+// 一个场景可以多次被初始化
+void CScene::generate()
+{
+    std::vector<std::vector<int>> matrix;
+    for (int i = 0; i < 9; i++)
+        matrix.push_back(std::vector<int>(9, 0));
+
+    // 初始化三个nuit
+    // 2 6 5 | 0 0 0 | 0 0 0
+    // 3 4 1 | 0 0 0 | 0 0 0
+    // 8 9 7 | 0 0 0 | 0 0 0
+    // ---------------------
+    // 0 0 0 | 1 9 4 | 0 0 0
+    // 0 0 0 | 8 3 6 | 0 0 0
+    // 0 0 0 | 5 2 7 | 0 0 0
+    // ---------------------
+    // 0 0 0 | 0 0 0 | 3 4 5
+    // 0 0 0 | 0 0 0 | 9 6 2
+    // 0 0 0 | 0 0 0 | 7 8 1
+    for (int num = 0; num < 3; num++)
+    {
+        std::vector<int> unit = shuffle_unit();
+        int start_index = num * 3;
+        for (int i = start_index; i < start_index+3; i++)
+            for (int j = start_index; j < start_index+3; j++)
+            {
+                matrix[i][j] = unit.back();
+                unit.pop_back();
+            }
+    }
+
+    // 统计空格数量
+    std::vector<std::tuple<int, int>> box_list;
+    for (int i = 0; i < 9; i++)
+        for (int j = 0; j < 9; j++)
+            if (matrix[i][j] == 0)
+                box_list.push_back(std::make_tuple(i, j));
+
+    // 逐个填充空格
+    std::map<std::string, std::vector<int>> available_num {};
+    int full_num = 0;
+    int empty_num = static_cast<int>(box_list.size());
+    while (full_num < empty_num)
+    {
+        std::tuple<int, int> position = box_list[full_num];
+        int row = std::get<0>(position);
+        int col = std::get<1>(position);
+        std::vector<int> able_unit;
+        std::string key = std::to_string(row) + "x" + std::to_string(col);
+        if (available_num.find(key) == available_num.end())
+        {
+            // 九宫格
+            able_unit = get_unit();
+            for(int i=row/3*3; i<row/3*3+3; i++){
+                for(int j=col/3*3; j<col/3*3+3; j++){
+                    able_unit.erase(std::remove(able_unit.begin(), able_unit.end(), matrix[i][j]), able_unit.end());
+                }
+            }
+            // 行
+            for (int i = 0; i < 9; i++)
+                if (matrix[row][i] != 0)
+                    able_unit.erase(std::remove(able_unit.begin(), able_unit.end(), matrix[row][i]), able_unit.end());
+            // 列
+            for (int i = 0; i < 9; i++)
+                if (matrix[i][col] != 0)
+                    able_unit.erase(std::remove(able_unit.begin(), able_unit.end(), matrix[i][col]), able_unit.end());
+            available_num[key] = able_unit;
+        }
+        else
+        {
+            able_unit = available_num[key];
+        }
+
+        // 如果没有可用的数字，则回溯
+        if (available_num[key].size() <= 0)
+        {
+            full_num -= 1;
+            if (available_num.find(key) != available_num.end())
+                available_num.erase(key);
+            matrix[row][col] = 0;
+            continue;
+        }
+        else
+        {
+            matrix[row][col] = available_num[key].back();
+            available_num[key].pop_back();
+            full_num += 1;
+        }
+
+    }
+
+    // 填入场景
+    for (int row = 0; row < 9; ++row)
+    {
+        for (int col = 0; col < 9; ++col)
+        {
+            point_t point = {row, col};
+            setValue(point, matrix[row][col]);
+        }
+    }
+
+    assert(isComplete());
+
+    return;
+}
+
+bool CScene::setPointValue(const point_t &stPoint, const int nValue)
+{
+    auto point = _map[stPoint.x + stPoint.y * 9];
+    if (State::ERASED == point.state)
+    {
+        _cur_point = stPoint;
+        setValue(nValue);
+        return true;
+    }
+    else
+        return false;
+}
+
+point_t CScene::getCurPoint()
+{
+    return _cur_point;
+}
+
+
+
+==============================================
+文件名：./common.h
+==============================================
+﻿#ifndef _SUDOKU_COMMON_H_
+#define _SUDOKU_COMMON_H_
+
+static const unsigned int UNSELECTED = 0; // 本文件定义未选择为整数0
+
+enum class Difficulty : int              // 强类型枚举  难度分级
+{
+    EASY = 1,
+    NORMAL,
+    HARD
+};
+
+enum class State : int                  // 强类型枚举  输入状态
+{
+    INITED = 0,                         // 输入
+    ERASED,                             // 擦除
+};
+
+enum class KeyMode : int                // 按键模式
+{
+    NORMAL = 1,
+    VIM
+};
+
+struct KeyMap                           // 结构体 为按键赋值十六进制数
+{
+    const char ESC = 0x1B;
+    const char U = 0x75;
+    char UP;
+    char LEFT;
+    char DOWN;
+    char RIGHT;
+    const char ENTER = 0x0D;
+};
+
+struct Normal : KeyMap                  // 结构体 为normal按键模式下的按键赋值，继承前一个结构体KeyMap
+{
+    Normal()
+    {
+        UP = 0x77;
+        LEFT = 0x61;
+        DOWN = 0x73;
+        RIGHT = 0x64;
+    }
+};
+
+struct Vim : KeyMap {                   // 结构体 为vim按键模式下的按键赋值，继承前一个结构体KeyMap
+    Vim()
+    {
+        UP = 0x6B;
+        LEFT = 0x68;
+        DOWN = 0x6A;
+        RIGHT = 0x6C;
+    }
+};
+
+using point_t = struct point_t {        // 定义一个新的结构体，同时为他赋予别名（然而别名本名相同不知何意）
+    int x;
+    int y;
+};
+
+using point_value_t = struct point_value_t {
+    int value;
+    State state;
+};
+
+class CPointSort                        // 结构体 用于判断两点坐标是否相同
+{
+  public:
+    bool operator()(const point_t &lhs, const point_t &rhs) const
+    {
+        if ((lhs.x == rhs.x) && (lhs.y == rhs.y))
+            return false;
+        else
+            return true;
+    }
+};
+
+#endif
+
+
+
+==============================================
+文件名：./command.cpp
+==============================================
+﻿#include "scene.h"
+#include "command.h"
+
+CCommand::CCommand(CScene *pOwner) : _pOwner(pOwner)
+{}
+
+CCommand::CCommand(CScene *pOwner, const point_t &point, int preValue, int curValue)
+    : _pOwner(pOwner), _stPoint(point), _nPreValue(preValue), _nCurValue(curValue) {}
+
+CCommand::CCommand(const CCommand &rhs)
+: _pOwner(rhs._pOwner)
+, _stPoint(rhs._stPoint)
+, _nPreValue(rhs._nPreValue)
+, _nCurValue(rhs._nCurValue)
+{}
+
+CCommand::~CCommand(){}
+
+bool CCommand::execute(int nInputValue)
+{
+    if (!_pOwner)
+        return false;
+
+    _stPoint = _pOwner->getCurPoint();
+    return _pOwner->setCurValue(nInputValue, _nPreValue);
+}
+
+void CCommand::undo()
+{
+    if (_pOwner)
+    {
+        _pOwner->setPointValue(_stPoint, _nPreValue);
+    }
+
+    return;
+}
+
+
+==============================================
+文件名：./scene.h
+==============================================
+﻿#ifndef _SUDOKU_SCENE_H_
+#define _SUDOKU_SCENE_H_
+
+#include <iostream>
+#include <vector>
+#include "common.h"
+#include "block.h"
+#include "command.h"
+
+//数独场景类
+class CScene
+{
+  public:
+    CScene(int index = 3);
+    virtual ~CScene();
+
+    void generate();
+    void show() const;
+
+    bool setCurValue(const int nCurValue, int& nLastValue);
+    bool setPointValue(const point_t&, const int);
+    point_t getCurPoint();
+
+    void eraseRandomGrids(const int count);
+    bool isComplete();
+
+    void play();
+    bool save(const char *filename);
+    bool load(const char *filename);
+
+    void setMode(KeyMode mode);
+
+  private:
+    void init(); // 将每个格子的指针放到block里面
+    void setValue(const int);
+    void setValue(const point_t &, const int);
+    void printUnderline(int line_no = -1) const;
+
+private:
+    KeyMap *keyMap{};
+    int _max_column;
+    point_t _cur_point;
+    CBlock _column_block[9];
+    CBlock _row_block[9];
+    CBlock _xy_block[3][3];
+    point_value_t _map[81];
+
+    std::vector<CCommand> _vCommand;
+};
+
+#endif
+
+
+==============================================
+文件名：./project_all_files.txt
+==============================================
+
+
+
+==============================================
+文件名：./i18n.cpp
+==============================================
+#include "i18n.h"
+
+#include <cassert>
+
+I18n::Dict english = {
+    {I18n::Key::ASK_KEY_MAP, "Keymap mode: 1 WASD 2 VIM"},
+    {I18n::Key::INPUT_ERROR, "Input error!"},
+    {I18n::Key::LOAD_PROGRESS_FAIL, "Load progress failed!"},
+    {I18n::Key::ASK_QUIT, "Quit game? [Y/N]"},
+    {I18n::Key::ASK_SAVE, "Do you want to save the game progress? [Y/N]"},
+    {I18n::Key::ASK_SAVE_PATH, "Input path of the progress file:"},
+    {I18n::Key::FILE_EXIST_ERROR, "This file is already exist."},
+    {I18n::Key::CONTINUE, "Continue."},
+    {I18n::Key::UNDO_ERROR, "No more action to undo."},
+    {I18n::Key::CONGRATULATION, "Congratulation! You Win!"},
+    {I18n::Key::NOT_COMPLETED, "Sorry, not completed."},
+    {I18n::Key::ASK_DIFFICULTY, "Select difficulty: 1 Easy 2 Normal 3 Hard"},
+};
+I18n::Dict chinese = {
+    {I18n::Key::ASK_KEY_MAP, "设置按键模式: 1 WASD 2 VIM"},
+    {I18n::Key::INPUT_ERROR, "输入错误!"},
+    {I18n::Key::LOAD_PROGRESS_FAIL, "加载存档失败!"},
+    {I18n::Key::ASK_QUIT, "退出游戏? [Y/N]"},
+    {I18n::Key::ASK_SAVE, "保存进度? [Y/N]"},
+    {I18n::Key::ASK_SAVE_PATH, "输入存档文件路径:"},
+    {I18n::Key::FILE_EXIST_ERROR, "文件已存在"},
+    {I18n::Key::CONTINUE, "继续"},
+    {I18n::Key::UNDO_ERROR, "没有可以撤销的动作"},
+    {I18n::Key::CONGRATULATION, "恭喜! 你解开了谜题!"},
+    {I18n::Key::NOT_COMPLETED, "对不起, 还未完成"},
+    {I18n::Key::ASK_DIFFICULTY, "设置难度: 1简单 2普通 3困难"},
+};
+
+// Default English
+I18n::I18n() : dict_(&english) {}
+
+I18n& I18n::Instance() {
+  static I18n i18n;
+  return i18n;
+}
+
+void I18n::SetLanguage(Language language) {
+  switch (language) {
+    case Language::ENGLISH:
+      dict_ = &english;
+      break;
+    case Language::CHINESE:
+      dict_ = &chinese;
+      break;
+    case Language::MAX:
+    default:
+      assert(false);
+  }
+}
+
+std::string I18n::Get(Key key) const {
+  assert(dict_->count(key));
+  return (*dict_)[key];
+}
+
+
+
+==============================================
+文件名：./system_env.hpp
+==============================================
+#pragma once
+
+#if _WIN32
+#include <Windows.h>
+#endif
+
+inline void SetWindowsEnv() {
+#if _WIN32
+  SetConsoleOutputCP(CP_UTF8);
+#endif
+}
+
+inline void SetSystemEnv() { SetWindowsEnv(); }
+
+
+
+==============================================
+文件名：./color.h
+==============================================
+﻿#ifndef _SUDOKU_COLOR_H
+#define _SUDOKU_COLOR_H
+
+#include <iostream>
+
+namespace Color
+{
+enum Code
+{
+    BOLD = 1,
+    RESET = 0,
+
+    BG_BLACK = 40,
+    BG_RED = 41,
+    BG_GREEN = 42,
+    BG_YELLOW = 43,
+    BG_BLUE = 44,
+    BG_MAGENTA = 45,
+    BG_CYAN = 46,
+    BG_LIGHT_GRAY = 47, // 实际是白色，终端为正常显示会进行调整
+    BG_DEFAULT = 49,
+    
+    
+    FG_BLACK = 30,
+    FG_RED = 31,
+    FG_GREEN = 32,
+    FG_YELLOW = 33,
+    FG_BLUE = 34,
+    FG_MAGENTA = 35,
+    FG_CYAN = 36,
+    FG_LIGHT_GRAY = 37,
+    FG_DEFAULT = 39,
+    FG_DARK_GRAY = 90,
+    FG_LIGHT_RED = 91,
+    FG_LIGHT_GREEN = 92,
+    FG_LIGHT_YELLOW = 93,
+    FG_LIGHT_BLUE = 94,
+    FG_LIGHT_MAGENTA = 95,
+    FG_LIGHT_CYAN = 96,
+    FG_WHITE = 97,
+    
+};
+
+class Modifier
+{
+    Code md, bg, fg;
+
+  public:
+    Modifier() : md(Color::RESET),bg(Color::BG_DEFAULT),fg(Color::FG_DEFAULT) {}
+    Modifier(Code Mode, Code BackGround, Code FrontGround) : md(Mode),bg(BackGround),fg(FrontGround) {}
+    friend std::ostream &
+    operator<<(std::ostream &os, const Modifier &mod)
+    {   
+        return os << "\033[" << mod.md << ";" << mod.bg << ";" << mod.fg << "m";
+    }
+};
+} // namespace Color
+
+#endif
+
+
+==============================================
+文件名：./display_symbol.h
+==============================================
+#pragma once
+
+constexpr char CORNER[] = "\u254B";
+constexpr char LINE[] = "\u2501";
+constexpr char PIPE[] = "\u2503";
+constexpr char ARROW[] = "^";
+
+
+
+==============================================
+文件名：./block.cpp
+==============================================
+#include "block.h"
+
+#include <cassert>
+#include <iostream>
+#include <string>
+
+#include "color.h"
+#include "common.h"
+#include "display_symbol.h"
+
+CBlock::CBlock()
+    : _count(0) {}
+
+bool CBlock::isValid() const
+{
+    assert(MAX_COUNT == _count);
+
+    for (int i = 0; i < _count - 1; ++i)
+    {
+        for (int j = i + 1; j < _count; ++j)
+        {
+            if (UNSELECTED == _numbers[i]->value || UNSELECTED == _numbers[j]->value)
+                continue;
+
+            if (_numbers[i]->value == _numbers[j]->value)
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool CBlock::isFull() const
+{
+    for (int i = 0; i < _count; ++i)
+    {
+        point_value_t *p_point_value = _numbers[i];
+        if (nullptr == p_point_value || UNSELECTED == p_point_value->value)
+            return false;
+    }
+    return true;
+}
+
+void CBlock::print(int cur_point, int highlighted_num) const {
+  std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << PIPE << Color::Modifier()<< " ";
+  for (int i = 0; i < _count; ++i) {
+    auto number = *(_numbers[i]);
+    Color::Code pipe_color, num_bgcolor, num_fgcolor;
+    std::string num = " ";
+    
+    if ((i+1)%3 == 0) pipe_color = Color::FG_RED;
+    else pipe_color = Color::FG_DEFAULT;
+
+    if (i==cur_point) num_bgcolor = Color::BG_BLUE;
+    else if (highlighted_num != UNSELECTED && number.value == highlighted_num)
+        num_bgcolor = Color::BG_YELLOW; // 与当前光标相同数字高亮为黄色
+    else num_bgcolor = Color::BG_DEFAULT;
+    
+    if (number.state == State::ERASED) num_fgcolor = Color::FG_GREEN;
+    else num_fgcolor = Color::FG_DEFAULT;
+
+    if (number.value != 0) {
+      num = std::to_string(number.value);
+    }
+
+    std::cout << Color::Modifier(Color::BOLD, num_bgcolor, num_fgcolor) << num
+              << Color::Modifier() << " " 
+              << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, pipe_color) << PIPE 
+              << Color::Modifier() << " ";
+  }
+  std::cout << std::endl;
+}
+
+void CBlock::push_back(point_value_t *point)
+{
+    assert(nullptr != point);
+    _numbers[_count++] = point;
+}
+
+int CBlock::getNumberValue(int index) const 
+{
+    if (index >= 0 && index < _count) {
+        return _numbers[index]->value;
+    }
+    return UNSELECTED; // 或抛异常
+}
+
+
+==============================================
+文件名：./input.h
+==============================================
+#ifndef _SUDOKU_INPUT_H_
+#define _SUDOKU_INPUT_H_
+
+#include "common.h"
+
+int inputDifficulty();
+KeyMode inputKeyMode();
+void InputLanguage();
+
+#endif
+
+
+==============================================
+文件名：./i18n.h
+==============================================
+#pragma once
+
+#include <cstdint>
+#include <map>
+#include <string>
+
+enum class Language : uint32_t {
+  ENGLISH,
+  CHINESE,
+  MAX,
+};
+
+class I18n {
+ public:
+  enum class Key {
+    ASK_KEY_MAP,
+    INPUT_ERROR,
+    LOAD_PROGRESS_FAIL,
+    ASK_QUIT,
+    ASK_SAVE,
+    ASK_SAVE_PATH,
+    FILE_EXIST_ERROR,
+    CONTINUE,
+    UNDO_ERROR,
+    CONGRATULATION,
+    NOT_COMPLETED,
+    ASK_DIFFICULTY,
+  };
+  using Dict = std::map<Key, std::string>;
+
+  static I18n& Instance();
+  void SetLanguage(Language);
+  std::string Get(Key) const;
+
+ private:
+  I18n();
+
+  Dict* dict_;
+};
+
+
+
+==============================================
+文件名：./main.cpp
+==============================================
+#include <cstring>
+#include <iostream>
+
+#include "i18n.h"
+#include "input.h"
+#include "scene.h"
+#include "system_env.hpp"
+#include "utility.inl"
+
+static void printHelp() {
+    std::cout << std::endl;
+    std::cout << "sudoku - a little game in command line" << std::endl
+              << std::endl;
+    std::cout << "Usage:" << std::endl;
+    std::cout << "\t sudoku [-l <progressFile>]" << std::endl << std::endl;
+    std::cout << "Options:" << std::endl;
+    std::cout << "\t -l <path> \t specify path of progress file to load, optional." << std::endl
+              << std::endl;
+}
+
+int main(int argc, char **argv)
+{
+  SetSystemEnv();
+
+  CScene scene;
+
+  if (argc == 1) {
+    InputLanguage();
+    int eraseGridNumber = inputDifficulty();
+    scene.generate();
+    scene.eraseRandomGrids(eraseGridNumber);
+  } else if (argc == 3 && !strcmp(argv[1], "-l")) {
+    // load saved game progress
+    if (!scene.load(argv[2])) {
+      message(I18n::Instance().Get(I18n::Key::LOAD_PROGRESS_FAIL));
+      return 0;
+    }
+    InputLanguage();
+  } else {
+    printHelp();
+    return 0;
+  }
+
+  scene.setMode(inputKeyMode());
+
+  scene.play();
+
+  return 0;
+}
+
+
+==============================================
+文件名：./utility.inl
+==============================================
+﻿#ifndef _SUDOKU_UTILITY_INL_
+#define _SUDOKU_UTILITY_INL_
+
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
+#include <cassert>
+#include <iostream>
+#include <random>
+#include <vector>
+
+//not real random,return number between [begin,end]
+inline unsigned int random(int begin, int end)
+{
+    std::random_device rd;
+    std::mt19937 g(rd());
+    return std::uniform_int_distribution<unsigned int>(begin, end)(g);
+}
+
+inline std::vector<int> get_unit(){
+    return std::vector<int> {1, 2, 3, 4, 5, 6, 7, 8, 9};
+}
+
+inline std::vector<int> shuffle_unit(){
+    std::vector<int> unit = get_unit();
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(unit.begin(), unit.end(), g);
+    return unit;
+}
+
+inline void message(const char* msg = "", bool lf = true)
+{
+    std::cout << msg;
+    if (lf) std::cout << std::endl;
+}
+
+inline void message(const std::string& msg, bool lf = true) {
+  message(msg.c_str(), lf);
+}
+
+#ifdef _WIN32
+#include <conio.h>
+#else
+    #ifdef __linux__
+    #include <termio.h>
+    #include <cstdio>
+    #include <fcntl.h>
+    #elif __APPLE__
+    #include <termios.h>
+    #include <fcntl.h>
+    #endif
+    inline char getch(void)
+    {
+        struct termios tmtemp, tm;
+        int c;
+        int fd = 0;
+        if (tcgetattr(fd, &tm) != 0)
+        { /*获取当前的终端属性设置，并保存到tm结构体中*/
+            return -1;
+        }
+        tmtemp = tm;
+        cfmakeraw(&tmtemp); /*将tetemp初始化为终端原始模式的属性设置*/
+        if (tcsetattr(fd, TCSANOW, &tmtemp) != 0)
+        { /*将终端设置为原始模式的设置*/
+            return -1;
+        }
+        c = getchar();
+        if (c == 27)  /* ESC返回27，上下左右为(27,91,xx) 与ESC的27冲突 */
+        {
+            int back_flags = fcntl(fd, F_GETFL);
+            /*将fd设置为非阻塞的，没有输入时可以立即返回*/
+            fcntl(fd, F_SETFL, back_flags | O_NONBLOCK);
+            c = getchar();
+            if (c == EOF)
+            {
+                c = 27; 
+            }
+            else
+            {
+                while ( (c = getchar()) != EOF) 
+                {
+                }
+            }
+            fcntl(fd, F_SETFL, back_flags);
+        }
+        if (tcsetattr(fd, TCSANOW, &tm) != 0)
+        { /*接收字符完毕后将终端设置回原来的属性*/
+            return 0;
+        }
+        return static_cast<char>(c);
+    }
+
+    inline char _getch() { return getch(); }
+#endif
+
+inline void cls(void)
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+#endif
+
+
+
+==============================================
+文件名：./command.h
+==============================================
+﻿#ifndef _SUDOKU_COMMAND_H_
+#define _SUDOKU_COMMAND_H_
+
+#include <memory>
+#include "common.h"
+
+class CScene;
+class CCommand
+{
+public:
+    CCommand(CScene* pOwner);
+    CCommand(CScene *pOwner, const point_t &point, int preValue, int curValue);
+    CCommand(const CCommand &);
+    ~CCommand();
+
+    bool execute(int nInputValue);
+    void undo();
+    point_t getPoint() { return _stPoint; }
+    int getPreValue() { return _nPreValue; }
+    int getCurValue() { return _nCurValue; }
+    void setPoint(const point_t &point) { _stPoint = point; }
+    void setPreValue(int preValue) { _nPreValue = preValue; }
+    void setCurValue(int curValue) { _nCurValue = curValue; }
+
+private:
+    CScene* _pOwner;
+    point_t _stPoint;
+    int _nPreValue;
+    int _nCurValue;  // actually the member is never used
+};
+
+#endif
+
+
+==============================================
+文件名：./block.h
+==============================================
+#ifndef _SUDOKU_BLOCK_H_
+#define _SUDOKU_BLOCK_H_
+
+#include "common.h"
+
+// 数独行政区域类
+class CBlock
+{
+    static const int MAX_COUNT = 9;
+
+  public:
+    CBlock();
+    bool isValid() const;
+    bool isFull() const;
+    void print(int cur_point = -1, int highlighted_num = '0') const;
+    void push_back(point_value_t *point);
+    int getNumberValue(int index) const;
+
+  private:
+    int _count;
+    point_value_t *_numbers[MAX_COUNT];
+};
+
+#endif
+
+

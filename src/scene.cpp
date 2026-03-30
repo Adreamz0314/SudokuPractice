@@ -29,7 +29,7 @@ CScene::~CScene()
 
 void CScene::show() const
 {
-    cls();
+    cls();                                                              //适用于不同系统的清屏命令  utility.inl
 
     printUnderline();
 
@@ -49,12 +49,12 @@ void CScene::show() const
     }
 }
 
-void CScene::setMode(KeyMode mode)
+void CScene::setMode(KeyMode mode)                                              //选择按键操作模式
 {
     switch (mode)
     {
     case KeyMode::NORMAL:
-        keyMap = new Normal;
+        keyMap = new Normal;                                                    //创建指向Normal的指针
         break;
 
     case KeyMode::VIM:
@@ -63,13 +63,13 @@ void CScene::setMode(KeyMode mode)
     }
 }
 
-void CScene::printUnderline(int line_no) const {
+void CScene::printUnderline(int line_no) const {                                //打印分格线，以及光标选中时的下划线箭头提示
     auto is_curline = (_cur_point.y == line_no);
-    for (int colunm = 0; colunm < 9; ++colunm) {
+    for (int colunm = 0; colunm < 9; ++colunm) {                                //此处colunm拼写错误，应该改为column
         if((colunm%3) == 0 || line_no == -1 || (line_no+1)%3 == 0) {
             std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << CORNER << Color::Modifier();
         } else {
-            std::cout <<  CORNER;
+            std::cout <<  CORNER;                                               //CORNER定义于display_symbol.h,表示十字角点符号
         }
         auto third_symbol = (is_curline && _cur_point.x == colunm) ? ARROW : LINE;
         if(line_no == -1 || (line_no+1)%3 == 0) {
@@ -148,8 +148,9 @@ void CScene::setValue(const int value)
     this->setValue(p, value);
 }
 
+
 // 选择count个格子清空
-void CScene::eraseRandomGrids(const int count)
+void CScene::eraseRandomGrids(const int count)                      //随机选取一定数量的格子，擦除
 {
     point_value_t p = {UNSELECTED, State::ERASED};
 
@@ -164,6 +165,7 @@ void CScene::eraseRandomGrids(const int count)
         v.erase(v.begin() + r);
     }
 }
+
 
 bool CScene::isComplete()
 {
@@ -250,7 +252,8 @@ bool CScene::load(const char *filename) {
     return true;
 }
 
-void CScene::play()
+
+void CScene::play()                             //玩家交互部分
 {
     show();
 
@@ -341,12 +344,22 @@ void CScene::play()
     }
 }
 
+
+
+
+
+
+
+
+
+
+
 // 一个场景可以多次被初始化
-void CScene::generate()
+void CScene::generate()                                                     //场景生成
 {
     std::vector<std::vector<int>> matrix;
     for (int i = 0; i < 9; i++)
-        matrix.push_back(std::vector<int>(9, 0));
+        matrix.push_back(std::vector<int>(9, 0));                           //创建一个9x9的空矩阵
 
     // 初始化三个nuit
     // 2 6 5 | 0 0 0 | 0 0 0
@@ -360,15 +373,15 @@ void CScene::generate()
     // 0 0 0 | 0 0 0 | 3 4 5
     // 0 0 0 | 0 0 0 | 9 6 2
     // 0 0 0 | 0 0 0 | 7 8 1
-    for (int num = 0; num < 3; num++)
+    for (int num = 0; num < 3; num++)                                       //循环三次，生成三个初始区块
     {
-        std::vector<int> unit = shuffle_unit();
-        int start_index = num * 3;
+        std::vector<int> unit = shuffle_unit();                             //来源 utility.inl
+        int start_index = num * 3;                                          //用于确定matrix[i][j]的位置
         for (int i = start_index; i < start_index+3; i++)
             for (int j = start_index; j < start_index+3; j++)
             {
-                matrix[i][j] = unit.back();
-                unit.pop_back();
+                matrix[i][j] = unit.back();                                //把unit数组中最后一个元素输入到matrix[i][j]中
+                unit.pop_back();                                           //清除unit数组的最后一个元素（已经输入）
             }
     }
 
@@ -377,7 +390,7 @@ void CScene::generate()
     for (int i = 0; i < 9; i++)
         for (int j = 0; j < 9; j++)
             if (matrix[i][j] == 0)
-                box_list.push_back(std::make_tuple(i, j));
+                box_list.push_back(std::make_tuple(i, j));               //记录空格坐标
 
     // 逐个填充空格
     std::map<std::string, std::vector<int>> available_num {};
@@ -390,11 +403,11 @@ void CScene::generate()
         int col = std::get<1>(position);
         std::vector<int> able_unit;
         std::string key = std::to_string(row) + "x" + std::to_string(col);
-        if (available_num.find(key) == available_num.end())
+        if (available_num.find(key) == available_num.end())                    //如果没有找到指定的key
         {
             // 九宫格
-            able_unit = get_unit();
-            for(int i=row/3*3; i<row/3*3+3; i++){
+            able_unit = get_unit();                                            //来自utility.inl,包含从1到9的vector
+            for(int i=row/3*3; i<row/3*3+3; i++){                              //0,1,2；3,4,5；6,7,8. 循环三次
                 for(int j=col/3*3; j<col/3*3+3; j++){
                     able_unit.erase(std::remove(able_unit.begin(), able_unit.end(), matrix[i][j]), able_unit.end());
                 }
@@ -402,7 +415,7 @@ void CScene::generate()
             // 行
             for (int i = 0; i < 9; i++)
                 if (matrix[row][i] != 0)
-                    able_unit.erase(std::remove(able_unit.begin(), able_unit.end(), matrix[row][i]), able_unit.end());
+                    able_unit.erase(std::remove(able_unit.begin(), able_unit.end(), matrix[row][i]), able_unit.end());                                          //擦除操作
             // 列
             for (int i = 0; i < 9; i++)
                 if (matrix[i][col] != 0)
@@ -446,6 +459,15 @@ void CScene::generate()
 
     return;
 }
+
+                                                        //generate部分结束
+
+
+
+
+
+
+
 
 bool CScene::setPointValue(const point_t &stPoint, const int nValue)
 {
