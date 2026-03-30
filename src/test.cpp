@@ -15,6 +15,8 @@ int main()
 
     message("随机数测试完成");
 
+    // 输出【红色加粗】的 角点符号 CORNER
+
 
     message("开始调用generate部分");
     int count;
