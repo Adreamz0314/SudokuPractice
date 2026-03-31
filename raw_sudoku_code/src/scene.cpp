@@ -27,14 +27,14 @@ CScene::~CScene()
     if(keyMap) delete keyMap;
 }
 
-void CScene::show() const
+void CScene::show() const                                               //绘制完整场景
 {
     cls();                                                              //适用于不同系统的清屏命令  utility.inl
 
-    printUnderline();
+    printUnderline();                                                   //打印水平分格线
 
     // 获取光标位置的数字值（若光标在有效位置）
-    int highlighted_num = UNSELECTED;
+    int highlighted_num = UNSELECTED;                                   //已经提前定义为整数0
     if (_cur_point.y >= 0 && _cur_point.y < _max_column) {
         const CBlock& cursor_block = _row_block[_cur_point.y];
         highlighted_num = cursor_block.getNumberValue(_cur_point.x);
