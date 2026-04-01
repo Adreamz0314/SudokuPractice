@@ -39,7 +39,7 @@ class CScene
 private:
     KeyMap *keyMap{};
     int _max_column;
-    point_t _cur_point;
+    point_t _cur_point;                                                         //point_t定义于common.h,包含横纵坐标
     CBlock _column_block[9];
     CBlock _row_block[9];
     CBlock _xy_block[3][3];

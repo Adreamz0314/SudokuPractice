@@ -44,7 +44,7 @@ struct Normal : KeyMap                  // 结构体 为normal按键模式下的
     }
 };
 
-struct Vim : KeyMap {                   // 结构体 为vim按键模式下的按键赋值，继承前一个结构体KeyMap
+struct Vim : KeyMap {                                                           // 结构体 为vim按键模式下的按键赋值，继承前一个结构体KeyMap
     Vim()
     {
         UP = 0x6B;
@@ -54,7 +54,7 @@ struct Vim : KeyMap {                   // 结构体 为vim按键模式下的按
     }
 };
 
-using point_t = struct point_t {        // 定义一个新的结构体，同时为他赋予别名（然而别名本名相同不知何意）
+using point_t = struct point_t {                                                //定义一个结构体，包含光标的横纵坐标，为他赋予别名point_t
     int x;
     int y;
 };

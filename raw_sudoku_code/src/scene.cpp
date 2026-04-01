@@ -22,8 +22,8 @@ CScene::CScene(int index)
     init();
 }
 
-CScene::~CScene()
-{
+CScene::~CScene()                                                       //析构函数 结束时自动执行 销毁指针（构造于scene.h） 释放内存
+{                                                                       //KeyMap *keyMap{};  KeyMap构造于common.h
     if(keyMap) delete keyMap;
 }
 
@@ -63,9 +63,11 @@ void CScene::setMode(KeyMode mode)                                              
     }
 }
 
-void CScene::printUnderline(int line_no) const {                                //打印分格线，以及光标选中时的下划线箭头提示
+void CScene::printUnderline(int line_no) const
+{                                                                               //打印分格线，以及光标选中时的下划线箭头提示
     auto is_curline = (_cur_point.y == line_no);
-    for (int colunm = 0; colunm < 9; ++colunm) {                                //此处colunm拼写错误，应该改为column
+    for (int colunm = 0; colunm < 9; ++colunm)
+    {                                                                           //此处colunm拼写错误，应该改为column
         if((colunm%3) == 0 || line_no == -1 || (line_no+1)%3 == 0) {
             std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << CORNER << Color::Modifier();
         } else {
