@@ -37,7 +37,7 @@ void CScene::show() const                                               //绘制
     int highlighted_num = UNSELECTED;                                   //已经提前定义为整数0
     if (_cur_point.y >= 0 && _cur_point.y < _max_column) {
         const CBlock& cursor_block = _row_block[_cur_point.y];
-        highlighted_num = cursor_block.getNumberValue(_cur_point.x);
+        highlighted_num = cursor_block.getNumberValue(_cur_point.x);            //判断是否为有效位置
     }
 
     for (int row = 0; row < _max_column; ++row)
