@@ -43,7 +43,7 @@ void CScene::show() const                                               //绘制
     for (int row = 0; row < _max_column; ++row)                                 //打印行
     {
         CBlock block = _row_block[row];
-        if(_cur_point.y == row) block.print(_cur_point.x, highlighted_num);     //判断是否符合打印条件
+        if(_cur_point.y == row) block.print(_cur_point.x, highlighted_num);     //判断是否符合条件
         else block.print(-1, highlighted_num);
         printUnderline(row);
     }
