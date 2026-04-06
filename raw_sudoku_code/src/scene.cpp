@@ -40,7 +40,7 @@ void CScene::show() const                                               //绘制
         highlighted_num = cursor_block.getNumberValue(_cur_point.x);            //判断是否为有效位置
     }
 
-    for (int row = 0; row < _max_column; ++row)                                 //打印行
+    for (int row = 0; row < _max_column; ++row)                                 //打印显示行
     {
         CBlock block = _row_block[row];
         if(_cur_point.y == row) block.print(_cur_point.x, highlighted_num);     //判断是否符合条件
