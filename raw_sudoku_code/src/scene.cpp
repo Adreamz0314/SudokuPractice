@@ -15,26 +15,26 @@
 #include "utility.inl"
 #include "color.h"
 
-CScene::CScene(int index)
-    : _max_column(static_cast<int>(pow(index, 2)))
-    , _cur_point({0, 0})
+CScene::CScene(int index)                                                       //index初始化为整数3,见于scene.h
+    : _max_column(static_cast<int>(pow(index, 2)))                              //初始化_max_column为整数9
+    , _cur_point({0, 0})                                                        //初始化指针坐标
 {
     init();
 }
 
-CScene::~CScene()                                                       //析构函数 结束时自动执行 销毁指针（构造于scene.h） 释放内存
-{                                                                       //KeyMap *keyMap{};  KeyMap构造于common.h
+CScene::~CScene()                                                               //析构函数 结束时自动执行 销毁指针（构造于scene.h） 释放内存
+{                                                                               //KeyMap *keyMap{};  KeyMap构造于common.h
     if(keyMap) delete keyMap;
 }
 
-void CScene::show() const                                               //绘制完整场景
+void CScene::show() const                                                       //绘制完整场景
 {
-    cls();                                                              //适用于不同系统的清屏命令  utility.inl
+    cls();                                                                      //适用于不同系统的清屏命令  utility.inl
 
-    printUnderline();                                                   //打印水平分格线
+    printUnderline();                                                           //无参数传入，打印红色单行
 
     // 获取光标位置的数字值（若光标在有效位置）
-    int highlighted_num = UNSELECTED;                                   //已经提前定义为整数0
+    int highlighted_num = UNSELECTED;                                           //已经提前定义为整数0
     if (_cur_point.y >= 0 && _cur_point.y < _max_column) {
         const CBlock& cursor_block = _row_block[_cur_point.y];
         highlighted_num = cursor_block.getNumberValue(_cur_point.x);            //判断是否为有效位置
@@ -63,18 +63,21 @@ void CScene::setMode(KeyMode mode)                                              
     }
 }
 
-void CScene::printUnderline(int line_no) const
-{                                                                               //打印分格线，以及光标选中时的下划线箭头提示
+void CScene::printUnderline(int line_no) const                                  //line_no默认值为-1,未传递参数情况（声明于scene.h）
+
+{
     auto is_curline = (_cur_point.y == line_no);
-    for (int colunm = 0; colunm < 9; ++colunm)
+    for (int colunm = 0; colunm < 9; ++colunm)                                  //打印分格线，以及光标选中时的下划线箭头提示
     {                                                                           //此处colunm拼写错误，应该改为column
-        if((colunm%3) == 0 || line_no == -1 || (line_no+1)%3 == 0) {
+        if((colunm%3) == 0 || line_no == -1 || (line_no+1)%3 == 0) {            //%求余运算；||或运算
+
             std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << CORNER << Color::Modifier();
         } else {
             std::cout <<  CORNER;                                               //CORNER定义于display_symbol.h,表示十字角点符号
         }
         auto third_symbol = (is_curline && _cur_point.x == colunm) ? ARROW : LINE;
-        if(line_no == -1 || (line_no+1)%3 == 0) {
+                                                                                //三目运算符
+        if(line_no == -1 || (line_no+1)%3 == 0) {                               //符合条件时，打印光标所在位置的下划线及箭头
             std::cout << Color::Modifier(Color::BOLD, Color::BG_DEFAULT, Color::FG_RED) << LINE << third_symbol << LINE << Color::Modifier();
         } else {
             std::cout << LINE << third_symbol << LINE;
