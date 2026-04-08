@@ -45,7 +45,7 @@ void CScene::show() const                                                       
         CBlock block = _row_block[row];
         if(_cur_point.y == row) block.print(_cur_point.x, highlighted_num);     //判断是否符合条件
         else block.print(-1, highlighted_num);
-        printUnderline(row);
+        printUnderline(row);                                                    //打印普通行
     }
 }
 
@@ -258,12 +258,12 @@ bool CScene::load(const char *filename) {
 }
 
 
-void CScene::play()                             //玩家交互部分
+void CScene::play()                                                             //玩家交互部分
 {
-    show();
+    show();                                                                     //打印边界格子线
 
-    char key = '\0';
-    while (1)
+    char key = '\0';                                                            //声明一个空字符（字符串结束
+    while (1)                                                                   //一直到函数结尾都是循环内容
     {
         key = static_cast<char>(_getch());
         if (key >= '0' && key <= '9')
