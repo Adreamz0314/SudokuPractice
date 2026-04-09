@@ -265,10 +265,10 @@ void CScene::play()                                                             
     char key = '\0';                                                            //声明一个空字符（字符串结束
     while (1)                                                                   //一直到函数结尾都是循环内容
     {
-        key = static_cast<char>(_getch());
+        key = static_cast<char>(_getch());                                      //_getch()读取键盘输入，但是只适用于windows系统
         if (key >= '0' && key <= '9')
         {
-            CCommand oCommand(this);
+            CCommand oCommand(this);                                            //
             if (!oCommand.execute(key - '0'))
             {
                 std::cout << "this number can't be modified." << std::endl;
