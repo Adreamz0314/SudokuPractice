@@ -269,7 +269,7 @@ void CScene::play()                                                             
         if (key >= '0' && key <= '9')
         {
             CCommand oCommand(this);                                            //
-            if (!oCommand.execute(key - '0'))
+            if (!oCommand.execute(key - '0'))                                   //判断语句
             {
                 std::cout << "this number can't be modified." << std::endl;
             }
