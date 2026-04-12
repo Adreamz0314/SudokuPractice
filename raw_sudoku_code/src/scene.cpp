@@ -266,9 +266,9 @@ void CScene::play()                                                             
     while (1)                                                                   //一直到函数结尾都是循环内容
     {
         key = static_cast<char>(_getch());                                      //_getch()读取键盘输入，但是只适用于windows系统
-        if (key >= '0' && key <= '9')
+        if (key >= '0' && key <= '9')                                           //判断输入是否从0到9  char型，合法
         {
-            CCommand oCommand(this);                                            //
+            CCommand oCommand(this);                                            //声明一个名为oCommand的CCommand类，  this为指向自己的指针
             if (!oCommand.execute(key - '0'))                                   //判断语句
             {
                 std::cout << "this number can't be modified." << std::endl;
