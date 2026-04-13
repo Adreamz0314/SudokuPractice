@@ -280,7 +280,7 @@ void CScene::play()                                                             
                 continue;
             }
         }
-        if (key == keyMap->ESC)
+        if (key == keyMap->ESC)                                                 //退出程序
         {
             message(I18n::Instance().Get(I18n::Key::ASK_QUIT));
             std::string strInput;
