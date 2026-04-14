@@ -269,7 +269,7 @@ void CScene::play()                                                             
         if (key >= '0' && key <= '9')                                           //判断输入是否从0到9  char型，合法
         {
             CCommand oCommand(this);                                            //声明一个名为oCommand的CCommand类，  this为指向自己的指针
-            if (!oCommand.execute(key - '0'))                                   //判断语句
+            if (!oCommand.execute(key - '0'))                                   //排除输入数字为0的情况
             {
                 std::cout << "this number can't be modified." << std::endl;
             }

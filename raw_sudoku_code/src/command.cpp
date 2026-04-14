@@ -18,7 +18,7 @@ CCommand::~CCommand(){}
 
 bool CCommand::execute(int nInputValue)
 {
-    if (!_pOwner)
+    if (!_pOwner)                                                               //_pOwner含义未知
         return false;
 
     _stPoint = _pOwner->getCurPoint();
