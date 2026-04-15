@@ -276,6 +276,7 @@ void CScene::play()                                                             
             else
             {
                 _vCommand.push_back(std::move(oCommand));  // XXX: move without move constructor
+                                                                                // 注释含义：这里用了移动语义，但对应的类**没有写移动构造函数**
                 show();
                 continue;
             }
