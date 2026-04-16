@@ -276,7 +276,7 @@ void CScene::play()                                                             
             else
             {
                 _vCommand.push_back(std::move(oCommand));  // XXX: move without move constructor
-                                                                                // 注释含义：这里用了移动语义，但对应的类**没有写移动构造函数**
+                                                                                // 注释含义：这里用了移动语义，但对应的类没有写移动构造函数
                 show();
                 continue;
             }
@@ -288,7 +288,7 @@ void CScene::play()                                                             
             std::cin >> strInput;
             if (strInput[0] == 'y' || strInput[0] == 'Y')
             {
-                message(I18n::Instance().Get(I18n::Key::ASK_SAVE));
+                message(I18n::Instance().Get(I18n::Key::ASK_SAVE));             //询问是否保存
                 std::cin >> strInput;
                 if (strInput[0] == 'y' || strInput[0] == 'Y') {
                   do {
