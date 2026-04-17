@@ -306,7 +306,7 @@ void CScene::play()                                                             
               message(I18n::Instance().Get(I18n::Key::CONTINUE));
             }
         }
-        else if (key == keyMap->U)
+        else if (key == keyMap->U)                                              //撤回操作
         {
           if (_vCommand.empty()) {
             message(I18n::Instance().Get(I18n::Key::UNDO_ERROR));
